@@ -1,0 +1,84 @@
+project_name: da3_nav_train_aligned
+run_name: da3_depth_visual_nav_aligned_with_vint
+
+# 基于 config/vint.yaml 对齐的 DA3 配置（用于公平对比）
+
+use_wandb: True
+train: True
+batch_size: 256
+epochs: 100
+gpu_ids: [7]
+num_workers: 12
+lr: 5e-4
+optimizer: adamw
+clipping: False
+scheduler: "cosine"
+warmup: True
+warmup_epochs: 4
+seed: 0
+
+image_size: [85, 64]
+goal_type: "image"
+context_type: "temporal"
+clip_goals: False
+
+# 模型（保持使用 da3 架构，但输入/训练超参与 vint 对齐）
+model_type: da3
+context_size: 5
+len_traj_pred: 5
+learn_angle: True
+mha_num_attention_heads: 4
+mha_num_attention_layers: 4
+mha_ff_dim_factor: 4
+
+# 训练超参
+eval_batch_size: 256
+
+normalize: True
+
+# 将 alpha 与 vint 对齐
+alpha: 0.5
+
+# 使用与 ViNT 相同的预处理以便做纯架构比较
+use_da3_preprocessing: false
+
+# 若要做端到端对比，可把上面改为 true 并记录 process_res
+da3_process_res: 224
+da3_process_res_method: "upper_bound_resize"
+da3_num_workers: 1
+
+datasets:
+  recon:
+    data_folder: /home/ljx/code/visualnav-transformer/recon
+    train: /home/ljx/code/visualnav-transformer/data_splits/recon/train/ # path to train folder with traj_names.txt
+    test: /home/ljx/code/visualnav-transformer/data_splits/recon/test/ # path to test folder with traj_names.txt
+    end_slack: 3 # because many trajectories end in collisions
+    goals_per_obs: 1 # how many goals are sampled per observation
+    negative_mining: True # negative mining from the ViNG paper (Shah et al.)
+  go_stanford:
+    data_folder: /home/abc/Datasets/GNM-Dataset/process_data/go_stanford # datasets/stanford_go_new
+    train: /home/abc/Datasets/GNM-Dataset/process_data/data_split/go_stanford_data/train
+    test: /home/abc/Datasets/GNM-Dataset/process_data/data_split/go_stanford_data/test
+    end_slack: 0
+    goals_per_obs: 2 # increase dataset size
+    negative_mining: True
+  sacson:
+    data_folder: /home/abc/Datasets/GNM-Dataset/process_data/sacson
+    train: /home/abc/Datasets/GNM-Dataset/process_data/data_split/sacson_data/train
+    test: /home/abc/Datasets/GNM-Dataset/process_data/data_split/sacson_data/test
+    end_slack: 3 # because many trajectories end in collisions
+    goals_per_obs: 1
+    negative_mining: True
+  scand:
+    data_folder: /home/abc/Datasets/GNM-Dataset/process_data/scand
+    train: /home/abc/Datasets/GNM-Dataset/process_data/data_split/scand_data/train
+    test: /home/abc/Datasets/GNM-Dataset/process_data/data_split/scand_data/test
+    end_slack: 0
+    goals_per_obs: 1
+    negative_mining: True
+distance:
+  min_dist_cat: 0
+  max_dist_cat: 20
+action:
+  min_dist_cat: 0
+  max_dist_cat: 10

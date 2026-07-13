@@ -1,0 +1,109 @@
+# 基础配置
+project_name: da3_nav_train
+run_name: da3_full_dino_unfreeze_gpu2_3_b64
+
+# 数据
+use_wandb: True
+train: True
+batch_size: 64
+epochs: 35
+gpu_ids: [2, 3]
+num_workers: 16
+
+# 学习率：导航/融合头正常训练，DINO backbone 全量微调用更小 lr
+lr: 1e-4
+optimizer: adamw
+da3_backbone_lr: 2e-6
+
+clipping: True
+max_norm: 1.0
+scheduler: "cosine"
+warmup: True
+warmup_epochs: 5
+seed: 0
+
+image_size: [85, 64]
+goal_type: "image"
+context_type: "temporal"
+clip_goals: False
+
+# 模型
+model_type: da3
+obs_encoding_size: 512
+
+# 当前 da3.py 已固定为 legacy depth + ViNT-style decoder 流程；
+# 该字段保留给 train.py 旧参数兼容。
+nav_fusion_mode: "legacy_depth"
+
+# 解冻 DINO/DA3 backbone 全部层；head 仍保持冻结，只训练导航头 + DINO backbone。
+da3_unfreeze_all_backbone: True
+da3_unfreeze_last_blocks: 12
+da3_unfreeze_norm: True
+
+context_size: 5
+len_traj_pred: 5
+learn_angle: True
+mha_num_attention_heads: 4
+mha_num_attention_layers: 4
+mha_ff_dim_factor: 4
+
+# 训练超参
+eval_batch_size: 64
+normalize: True
+alpha: 0.5
+
+# DA3 preprocessing
+use_da3_preprocessing: True
+da3_process_res: 224
+da3_process_res_method: "upper_bound_resize"
+da3_num_workers: 1
+load_original_images: False
+
+# 数据集
+datasets:
+  recon:
+    data_folder: /home/ljx/code/visualnav-transformer/recon
+    train: /home/ljx/code/visualnav-transformer/data_splits/recon/train/ # path to train folder with traj_names.txt
+    test: /home/ljx/code/visualnav-transformer/data_splits/recon/test/ # path to test folder with traj_names.txt
+    end_slack: 3 # because many trajectories end in collisions
+    goals_per_obs: 1 # how many goals are sampled per observation
+    negative_mining: True # negative mining from the ViNG paper (Shah et al.)
+  go_stanford:
+    data_folder: /home/abc/Datasets/GNM-Dataset/process_data/go_stanford # datasets/stanford_go_new
+    train: /home/abc/Datasets/GNM-Dataset/process_data/data_split/go_stanford_data/train
+    test: /home/abc/Datasets/GNM-Dataset/process_data/data_split/go_stanford_data/test
+    end_slack: 0
+    goals_per_obs: 2 # increase dataset size
+    negative_mining: True
+  sacson:
+    data_folder: /home/abc/Datasets/GNM-Dataset/process_data/sacson
+    train: /home/abc/Datasets/GNM-Dataset/process_data/data_split/sacson_data/train
+    test: /home/abc/Datasets/GNM-Dataset/process_data/data_split/sacson_data/test
+    end_slack: 3 # because many trajectories end in collisions
+    goals_per_obs: 1
+    negative_mining: True
+  scand:
+    data_folder: /home/abc/Datasets/GNM-Dataset/process_data/scand
+    train: /home/abc/Datasets/GNM-Dataset/process_data/data_split/scand_data/train
+    test: /home/abc/Datasets/GNM-Dataset/process_data/data_split/scand_data/test
+    end_slack: 0
+    goals_per_obs: 1
+    negative_mining: True
+
+# 距离/动作配置
+distance:
+  min_dist_cat: 0
+  max_dist_cat: 20
+action:
+  min_dist_cat: 0
+  max_dist_cat: 10
+close_far_threshold: 10
+
+# logging
+print_log_freq: 100
+image_log_freq: 0
+num_images_log: 0
+pairwise_test_freq: 20
+eval_fraction: 0.05
+wandb_log_freq: 10
+eval_freq: 1

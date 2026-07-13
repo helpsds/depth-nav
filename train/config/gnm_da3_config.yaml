@@ -1,0 +1,51 @@
+# GNM training configuration with Depth Anything 3 preprocessing
+
+model_type: gnm
+context_size: 5
+len_traj_pred: 5
+learn_angle: true
+obs_encoding_size: 1024
+goal_encoding_size: 1024
+normalize: true
+goal_type: image
+
+# Enable DA3 preprocessing instead of default resize/crop
+use_da3_preprocessing: true
+
+# DA3 preprocessing parameters
+da3_process_res: 504
+da3_process_res_method: "upper_bound_resize"  # Options: upper_bound_resize, upper_bound_crop, lower_bound_resize, lower_bound_crop
+da3_num_workers: 1  # Keep as 1 for DataLoader compatibility
+
+# Training parameters
+batch_size: 32
+eval_batch_size: 32
+num_workers: 4
+learning_rate: 0.0001
+weight_decay: 0.01
+num_epochs: 100
+seed: 42
+gpu_ids: [0]
+
+# Distance and action categories
+distance:
+  min_dist_cat: 1
+  max_dist_cat: 20
+
+action:
+  min_dist_cat: 1
+  max_dist_cat: 10
+
+# Dataset configuration
+datasets:
+  tartandrive:
+    data_folder: "/path/to/your/tartandrive/data"
+    train: "/path/to/your/tartandrive/train_split"
+    test: "/path/to/your/tartandrive/test_split"
+    waypoint_spacing: 1
+    negative_mining: true
+    goals_per_obs: 1
+    end_slack: 0
+
+# Note: When using DA3 preprocessing, the 'image_size' parameter is ignored
+# because DA3 handles its own image sizing based on da3_process_res
