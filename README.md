@@ -24,6 +24,40 @@ This repository contains code for training our family of models with your own da
 - `./deployment/src/navigate.sh`: script that deploys a trained GNM/ViNT/NoMaD model on the robot to navigate to a desired goal in the generated topological graph. Please see relevant sections below for configuration settings.
 - `./deployment/src/explore.sh`: script that deploys a trained NoMaD model on the robot to randomly explore its environment. Please see relevant sections below for configuration settings.
 
+## Local Fork Notes
+
+This repository is based on [`robodhruv/visualnav-transformer`](https://github.com/robodhruv/visualnav-transformer), with local changes for DA3-based visual navigation training and online mapping experiments.
+
+Main local additions:
+
+- `train/config/da3*.yaml`: DA3 navigation training configs, including variants for ViNT-like fusion, aligned ViNT settings, and backbone unfreezing experiments.
+- `train/vint_train/data/vint_dataset_da3.py`: dataset wrapper that uses Depth Anything 3 preprocessing through `InputProcessor`.
+- `train/vint_train/models/gnm/depth_anything_3/`: Depth Anything 3 model code used by the DA3 navigation model.
+- `train/train.py`: extended training entrypoint with `model_type: da3`, DA3 weight loading, optional backbone freezing/unfreezing, DA3 preprocessing, and separate backbone/navigation optimizer parameter groups.
+- `train/fix_da3_training.py`: helper script for adjusting DA3 training hyperparameters and adding training diagnostics.
+- `deployment/src/online_create_topomap.py`: online topological-map image collection from live ROS camera and odometry topics.
+- `deployment/src/auto_map_node.py` and `deployment/src/semantic_graph_mapper.py`: experimental semantic topological mapping using navigation-model loading plus CLIP/networkx graph features.
+- `deployment/src/prismatic/`: local Prismatic/OpenVLA-related code used for VLA experiments.
+- `diffusion_policy/`: local checkout of Stanford Diffusion Policy used by NoMaD/diffusion-policy components.
+
+Large local artifacts are intentionally ignored by Git, including model weights, training logs, `transfer_packages/`, robot captures, and local topomap images. Download or place these files locally as needed.
+
+### Important Local Paths
+
+Some configs currently contain machine-specific absolute paths. Before training on a new machine, update:
+
+- dataset paths in `train/config/da3*.yaml`
+- DA3 pretrained weight path in `train/train.py`
+- deployment checkpoint paths in `deployment/config/models.yaml`
+
+The DA3 training code currently expects DA3 weights like:
+
+```bash
+/home/yyz/depth-anything-3/DA3-SMALL/model.safetensors
+```
+
+Change this path in `train/train.py` or adapt the code to read it from the YAML config before running training elsewhere.
+
 ## Train
 
 This subfolder contains code for processing datasets and training models from your own data.
@@ -114,6 +148,27 @@ Run this inside the `vint_release/train` directory:
 python train.py -c <path_of_train_config_file>
 ```
 The premade config yaml files are in the `train/config` directory. 
+
+### Training the DA3 Navigation Model
+
+This fork adds an experimental DA3 navigation model. Edit the dataset paths in `train/config/da3.yaml`, make sure the DA3 pretrained `model.safetensors` path in `train/train.py` exists, then run:
+
+```bash
+cd train
+python train.py -c config/da3.yaml
+```
+
+Useful DA3 config fields:
+
+- `model_type: da3`: enables the DA3 navigation model path.
+- `use_da3_preprocessing: True`: uses Depth Anything 3 preprocessing instead of the original ViNT resize/crop path.
+- `da3_process_res`: input processing resolution for DA3.
+- `nav_fusion_mode`: navigation fusion mode, currently including `vint_like` and legacy depth-fusion variants.
+- `da3_unfreeze_last_blocks`: number of final DA3 backbone blocks to unfreeze.
+- `da3_backbone_lr`: learning rate for unfrozen DA3 backbone parameters.
+- `load_original_images`: set to `False` to avoid extra visualization image loading during memory-sensitive training.
+
+If evaluation runs out of GPU memory, lower `eval_batch_size`, `batch_size`, or `da3_process_res` in the config. The helper script `train/fix_da3_training.py` documents one set of memory-oriented adjustments, but review it before running because it rewrites local config/model files.
 
 #### Custom Config Files
 You can use one of the premade yaml files as a starting point and change the values as you need. `config/vint.yaml` is good choice since it has commented arguments. `config/defaults.yaml` contains the default config values (don't directly train with this config file since it does not specify any datasets for training).
@@ -226,6 +281,34 @@ This command opens up 3 windows:
 3. `rosbag play -r 1.5 <bag_filename>`: This command plays the rosbag at x5 speed, so the python script is actually recording nodes 1.5 seconds apart. The `<bag_filename>` should be the entire bag name with the .bag extension. You can change this value in the `make_topomap.sh` file. The command does not run until you hit Enter, which you should only do once the python script gives its waiting message. Once you play the bag, move to the screen where the python script is running so you can kill it when the rosbag stops playing.
 
 When the bag stops playing, kill the tmux session.
+
+#### Online topological mapping
+
+This fork also includes an online topomap collector that saves map-node images while the robot is being teleoperated, without first recording and replaying a rosbag:
+
+```bash
+cd deployment/src
+python online_create_topomap.py --dir <topomap_name>
+```
+
+By default it subscribes to:
+
+- `/usb_cam/image_raw` for RGB images
+- `/odom` for motion-triggered node collection
+- `joy` for joystick shutdown
+
+Images are saved under `deployment/topomaps/images/<topomap_name>/`. The current trigger stores a new node when odometry changes by roughly 0.5 m or 15 degrees. Update `IMAGE_TOPIC`, `ODOM_TOPIC`, or the thresholds in `deployment/src/online_create_topomap.py` if your robot topics differ.
+
+#### Experimental semantic graph mapping
+
+The files `deployment/src/auto_map_node.py` and `deployment/src/semantic_graph_mapper.py` are experimental semantic mapping utilities. They load a configured navigation model, extract CLIP-based image features, and save a networkx topological graph for loop-closure-style mapping experiments.
+
+```bash
+cd deployment/src
+python auto_map_node.py --model <model_name>
+```
+
+Before using this path, verify the model entry in `deployment/config/models.yaml`, install the extra dependencies (`transformers`, `networkx`, and CLIP model downloads), and adjust ROS topics for your robot.
 
 
 ### Running the model 
