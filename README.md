@@ -373,30 +373,26 @@ When the robot is finishing navigating, kill the `pd_controller.py` script, and 
 
 We hope that this codebase is general enough to allow you to deploy it to your favorite ROS-based robots. You can change the robot configuration parameters in `vint_release/deployment/config/robot.yaml`, like the max angular and linear velocities of the robot and the topics to publish to teleop and control the robot. Please feel free to create a Github Issue or reach out to the authors at shah@cs.berkeley.edu.
 
+## Pretrained Model Weights
 
-## Citing
-```
-@inproceedings{shah2022gnm,
-  author    = {Dhruv Shah and Ajay Sridhar and Arjun Bhorkar and Noriaki Hirose and Sergey Levine},
-  title     = {{GNM: A General Navigation Model to Drive Any Robot}},
-  booktitle = {International Conference on Robotics and Automation (ICRA)},
-  year      = {2023},
-  url       = {https://arxiv.org/abs/2210.03370}
-}
+The trained model checkpoints are hosted on Hugging Face.
 
-@inproceedings{shah2023vint,
-  title     = {Vi{NT}: A Foundation Model for Visual Navigation},
-  author    = {Dhruv Shah and Ajay Sridhar and Nitish Dashora and Kyle Stachowicz and Kevin Black and Noriaki Hirose and Sergey Levine},
-  booktitle = {7th Annual Conference on Robot Learning},
-  year      = {2023},
-  url       = {https://arxiv.org/abs/2306.14846}
-}
+| Checkpoint | Download |
+|---|---|
+| Epoch 29 | [Download 29.pth](https://huggingface.co/helpsds/depthnav-gnm-da3/resolve/main/checkpoints/29.pth?download=true) |
+| Epoch 32 | [Download 32.pth](https://huggingface.co/helpsds/depthnav-gnm-da3/resolve/main/checkpoints/32.pth?download=true) |
 
-@article{sridhar2023nomad,
-  author  = {Ajay Sridhar and Dhruv Shah and Catherine Glossop and Sergey Levine},
-  title   = {{NoMaD: Goal Masked Diffusion Policies for Navigation and Exploration}},
-  journal = {arXiv pre-print},
-  year    = {2023},
-  url     = {https://arxiv.org/abs/2310.xxxx}
-}
-```
+Hugging Face repository:  
+[helpsds/depthnav-gnm-da3](https://huggingface.co/helpsds/depthnav-gnm-da3)
+
+Download using Python:
+
+```python
+from huggingface_hub import hf_hub_download
+
+checkpoint_path = hf_hub_download(
+    repo_id="helpsds/depthnav-gnm-da3",
+    filename="checkpoints/32.pth",
+)
+
+print(checkpoint_path)
